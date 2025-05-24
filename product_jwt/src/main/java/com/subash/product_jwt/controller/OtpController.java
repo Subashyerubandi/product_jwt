@@ -31,12 +31,12 @@ public class OtpController {
     @PostMapping("/email")
     public ResponseEntity<String> sendOtpToMail(@RequestParam String email) {
         otpService.generateOtpForEmail(email);
-        return ResponseEntity.ok("OTP sent to email");
+        return ResponseEntity.ok("OTP sent (check console)");
     }
 
     @PostMapping("/validate")
     public ResponseEntity<String> validateOtp(@RequestParam String email, @RequestParam String otp) {
         boolean isValid = otpService.validateOtpForEmail(email, otp);
-        return ResponseEntity.ok(isValid ? "OTP is valid" : "Invalid or expired OTP");
+        return isValid ? ResponseEntity.ok("OTP Verified") : ResponseEntity.status(400).body("Invalid OTP");
     }
 }
