@@ -3,6 +3,7 @@ package com.subash.product_jwt.service;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,8 @@ import com.subash.product_jwt.model.Role;
 import com.subash.product_jwt.model.User;
 import com.subash.product_jwt.repository.RoleRepository;
 import com.subash.product_jwt.repository.UserRepository;
+import com.subash.product_jwt.dto.ForgetPasswordRequest;
+import com.subash.product_jwt.dto.PasswordChangeRequest;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -107,6 +110,71 @@ public class UserService {
         User updatedUser = userRepository.save(user);
         return convertToDTO(updatedUser);
     }
+    
+    public void changePassword(PasswordChangeRequest request) {
+        // Get the authenticated user's email from SecurityContext
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Find the user by email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        // Verify the old password
+        if (!encoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Old password is incorrect");
+        }
+
+        // Validate new password and confirmation
+        if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            throw new IllegalArgumentException("New password and confirmation do not match");
+        }
+
+        // Encode and update the new password
+        user.setPassword(encoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+    
+    public void changePasswordThroughMobile(String mobile, ForgetPasswordRequest request) {
+
+    	User user = userRepository.findByMobile(mobile)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with mobile: " + mobile));
+
+    	// Verify the old password
+        if (encoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Entered same password as old password");
+        }
+    	
+        // Validate new password and confirmation
+        if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            throw new IllegalArgumentException("New password and confirmation do not match");
+        }
+
+        // Encode and update the new password
+        user.setPassword(encoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+		
+	}
+
+	public void changePasswordThroughEmail(String email, ForgetPasswordRequest request) {
+		
+		User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+		// Verify the old password
+        if (encoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Entered same password as old password");
+        }
+		
+        // Validate new password and confirmation
+        if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            throw new IllegalArgumentException("New password and confirmation do not match");
+        }
+
+        // Encode and update the new password
+        user.setPassword(encoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        
+	}
 
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
